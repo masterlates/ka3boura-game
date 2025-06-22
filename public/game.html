@@ -13,15 +13,8 @@
       padding: 20px;
       text-align: center;
     }
-    #question {
-      font-size: 1.5em;
-      margin-bottom: 15px;
-    }
-    #timer {
-      font-size: 1.3em;
-      margin-bottom: 15px;
-      color: #e84118;
-    }
+    #question { font-size: 1.5em; margin-bottom: 15px; }
+    #timer { font-size: 1.3em; margin-bottom: 15px; color: #e84118; }
     input[type="text"] {
       font-size: 1.2em;
       padding: 8px;
@@ -38,18 +31,9 @@
       border-radius: 8px;
       cursor: pointer;
     }
-    button:disabled {
-      background-color: #aaa;
-      cursor: not-allowed;
-    }
-    #result {
-      font-size: 1.3em;
-      margin-top: 15px;
-    }
-    #score {
-      margin-top: 20px;
-      font-size: 1.4em;
-    }
+    button:disabled { background-color: #aaa; cursor: not-allowed; }
+    #result { font-size: 1.3em; margin-top: 15px; }
+    #score { margin-top: 20px; font-size: 1.4em; }
   </style>
 </head>
 <body>
@@ -75,16 +59,19 @@
 
 <script>
   const socket = io('https://ka3boura-game.onrender.com');
-
   const playerName = localStorage.getItem('playerName');
   const gameCode = localStorage.getItem('gameCode');
+  const isHost = localStorage.getItem('isHost') === 'true';
 
   if (!playerName || !gameCode) {
     alert('الرجاء الانضمام للعبة أولاً.');
     window.location.href = 'join.html';
   }
 
-  socket.emit('player-join-game', { playerName, gameCode });
+  // لا ترسل player-join-game مرة ثانية إذا كان host
+  if (!isHost) {
+    socket.emit('player-join-game', { playerName, gameCode });
+  }
 
   socket.on('joined-success', () => {
     console.log('تم الانضمام للعبة بنجاح');
@@ -108,20 +95,34 @@
   let timeLeft = 0;
   let timerId = null;
   let score = 0;
-  let currentQuestionIndex = 0;
-  let questions = [
-    { text: "عاصمة تونس شنوّة؟", answers: ["تونس", "tunis", "تونِس"] },
-    { text: "أشهر أكلات تونسية؟", answers: ["كسكسي", "كسكس", "كسكسيّة"] },
-    { text: "لون العلم التونسي؟", answers: ["أحمر", "احمر"] }
-  ];
+  let currentQuestion = null;
 
+  // لما تبدأ اللعبة من المضيف
   socket.on('game-started', () => {
     waitingSection.style.display = 'none';
     questionSection.style.display = 'block';
     scoreEl.style.display = 'block';
-    currentQuestionIndex = 0;
-    showQuestion(questions[currentQuestionIndex]);
+    nextQuestion();
   });
+
+  function nextQuestion() {
+    const sampleQuestions = [
+      { text: "عاصمة تونس شنوّة؟", answers: ["تونس", "tunis", "تونِس"] },
+      { text: "أشهر أكلات تونسية؟", answers: ["كسكسي", "كسكس", "كسكسيّة"] },
+      { text: "لون العلم التونسي؟", answers: ["أحمر", "احمر"] }
+    ];
+
+    if (currentQuestion === null) currentQuestion = 0;
+    else currentQuestion++;
+
+    if (currentQuestion >= sampleQuestions.length) {
+      alert('انتهت الجولة!');
+      window.location.href = 'join.html';
+      return;
+    }
+
+    showQuestion(sampleQuestions[currentQuestion]);
+  }
 
   function showQuestion(question) {
     questionEl.textContent = question.text;
@@ -146,36 +147,14 @@
     }, 1000);
   }
 
-  function nextQuestion() {
-    currentQuestionIndex++;
-    if (currentQuestionIndex >= questions.length) {
-      alert('انتهت الجولة!');
-      window.location.href = 'join.html';
-    } else {
-      showQuestion(questions[currentQuestionIndex]);
-    }
-  }
-
   submitBtn.addEventListener('click', () => {
     const answer = answerInput.value.trim();
     if (!answer) return;
 
-    const correctAnswers = questions[currentQuestionIndex].answers;
-    if (correctAnswers.includes(answer)) {
-      score += 1;
-      playerScoreEl.textContent = score;
-      resultEl.textContent = '✔️ إجابة صحيحة!';
-    } else {
-      resultEl.textContent = '❌ إجابة خاطئة';
-    }
-
     socket.emit('player-answer', { gameCode, answer });
-
+    resultEl.textContent = 'تم إرسال جوابك';
     answerInput.disabled = true;
     submitBtn.disabled = true;
-    clearInterval(timerId);
-
-    setTimeout(nextQuestion, 2000);
   });
 </script>
 
