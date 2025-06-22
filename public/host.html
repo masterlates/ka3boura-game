@@ -20,9 +20,10 @@
     }
     label, input, select, button {
       font-size: 1.1em;
-      margin: 10px auto;
+      margin: 10px;
       display: block;
       width: 80%;
+      margin: 10px auto;
     }
     button {
       background-color: #e84118;
@@ -34,18 +35,6 @@
     }
     #qr {
       margin-top: 20px;
-    }
-    #playersList {
-      margin-top: 20px;
-      text-align: right;
-      max-width: 400px;
-      margin-left: auto;
-      margin-right: auto;
-      background: #fff0f0;
-      border: 1px solid #e84118;
-      border-radius: 8px;
-      padding: 10px;
-      font-size: 1.1em;
     }
   </style>
 </head>
@@ -77,19 +66,11 @@
     <p>شارك الرابط التالي مع أصحابك:</p>
     <p id="gameLink"></p>
     <div id="qr"></div>
+    <p style="color: green;">🚀 سيتم تحويلك إلى اللعبة تلقائيًا...</p>
   </div>
-
-  <div id="playersList" style="display:none;">
-    <h3>اللاعبون المنضمون:</h3>
-    <ul id="players"></ul>
-  </div>
-
-  <button id="startGameBtn" style="display:none;" onclick="launchGame()">ابدأ اللعبة للجميع</button>
 
   <script>
     const socket = io('https://ka3boura-game.onrender.com');
-
-    let currentGameCode = null;
 
     function startGame() {
       const hostName = document.getElementById('hostName').value.trim();
@@ -106,30 +87,22 @@
     }
 
     socket.on('game-created', ({ gameCode }) => {
-      currentGameCode = gameCode;
       document.getElementById('gameCode').innerText = gameCode;
       const link = `${location.origin}/join.html?code=${gameCode}`;
       document.getElementById('gameLink').innerText = link;
-      new QRCode(document.getElementById("qr"), link);
+      new QRCode(document.getElementById('qr'), link);
       document.getElementById('gameCodeSection').style.display = 'block';
-      document.getElementById('playersList').style.display = 'block';
-      document.getElementById('startGameBtn').style.display = 'inline-block';
-    });
 
-    // إظهار اللاعبين المنضمين في القائمة
-    socket.on('player-joined', ({ playerId, playerName }) => {
-      const playersUl = document.getElementById('players');
-      const li = document.createElement('li');
-      li.id = playerId;
-      li.textContent = playerName;
-      playersUl.appendChild(li);
-    });
+      // نحفظ اسم المضيف والكود
+      const hostName = document.getElementById('hostName').value.trim();
+      localStorage.setItem('playerName', hostName);
+      localStorage.setItem('gameCode', gameCode);
 
-    function launchGame() {
-      if (!currentGameCode) return;
-      socket.emit('host-start-game', { gameCode: currentGameCode });
-      alert('تم بدء اللعبة، انتظر اللاعبين للعب!');
-    }
+      // التوجيه التلقائي إلى صفحة اللعب بعد 5 ثواني
+      setTimeout(() => {
+        window.location.href = 'game.html';
+      }, 5000);
+    });
   </script>
 </body>
 </html>
