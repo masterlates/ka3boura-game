@@ -6,6 +6,7 @@
   <title>🎮 كعبورة يجاوب - المضيف</title>
   <link rel="stylesheet" href="style.css" />
   <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     body {
       font-family: 'Arial', sans-serif;
@@ -31,14 +32,13 @@
       border-radius: 8px;
       cursor: pointer;
     }
-    ul {
-      list-style-type: none;
-      padding: 0;
-    }
     #playersList {
       margin-top: 20px;
       font-size: 1.2em;
       color: #333;
+    }
+    #gameLink, #qr {
+      margin-top: 15px;
     }
   </style>
 </head>
@@ -67,14 +67,15 @@
 
   <div id="gameInfo" style="display: none;">
     <h2>🔐 كود اللعبة: <span id="gameCode"></span></h2>
-    <p>شارك هذا الكود مع أصحابك للانضمام</p>
+    <p>شارك هذا الرابط مع أصحابك:</p>
+    <p id="gameLink"></p>
+    <div id="qr"></div>
     <ul id="playersList"></ul>
     <button onclick="startGame()">🚀 ابدأ اللعبة للجميع</button>
   </div>
 
   <script>
     const socket = io();
-
     let gameCode = '';
     let hostName = '';
 
@@ -97,6 +98,11 @@
       localStorage.setItem('playerName', hostName);
       localStorage.setItem('gameCode', gameCode);
       document.getElementById('gameCode').textContent = gameCode;
+
+      const fullLink = `${location.origin}/join.html?code=${gameCode}`;
+      document.getElementById('gameLink').textContent = fullLink;
+      new QRCode(document.getElementById('qr'), fullLink);
+
       document.getElementById('gameInfo').style.display = 'block';
     });
 
