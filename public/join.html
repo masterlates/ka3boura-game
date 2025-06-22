@@ -54,6 +54,19 @@
       document.getElementById('gameCode').value = codeFromURL;
     }
 
+    // نضع الـ event listeners خارج دالة joinGame
+    socket.on('error-message', (msg) => {
+      alert(msg);
+    });
+
+    socket.on('joined-success', () => {
+      const playerName = document.getElementById('playerName').value.trim();
+      const gameCode = document.getElementById('gameCode').value.trim().toUpperCase();
+      localStorage.setItem('playerName', playerName);
+      localStorage.setItem('gameCode', gameCode);
+      window.location.href = 'game.html';
+    });
+
     function joinGame() {
       const playerName = document.getElementById('playerName').value.trim();
       const gameCode = document.getElementById('gameCode').value.trim().toUpperCase();
@@ -64,17 +77,6 @@
       }
 
       socket.emit('player-join-game', { playerName, gameCode });
-
-      socket.on('error-message', (msg) => {
-        alert(msg);
-      });
-
-      socket.on('joined-success', () => {
-        // تخزين الاسم والكود للعبة القادمة
-        localStorage.setItem('playerName', playerName);
-        localStorage.setItem('gameCode', gameCode);
-        window.location.href = 'game.html';
-      });
     }
   </script>
 </body>
