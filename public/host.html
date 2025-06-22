@@ -6,7 +6,7 @@
   <title>🎮 كعبورة يجاوب - المضيف</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="https://ka3boura-game.onrender.com/socket.io/socket.io.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
   <style>
     body {
       font-family: 'Arial', sans-serif;
@@ -20,10 +20,9 @@
     }
     label, input, select, button {
       font-size: 1.1em;
-      margin: 10px;
+      margin: 10px auto;
       display: block;
       width: 80%;
-      margin: 10px auto;
     }
     button {
       background-color: #e84118;
@@ -35,6 +34,16 @@
     }
     #qr {
       margin-top: 20px;
+    }
+    #playersList {
+      text-align: right;
+      max-width: 400px;
+      margin: 10px auto;
+      border: 1px solid #ddd;
+      padding: 10px;
+      border-radius: 6px;
+      background: #fff;
+      min-height: 80px;
     }
   </style>
 </head>
@@ -59,20 +68,26 @@
   <label>مدة كل سؤال (بالثواني):</label>
   <input type="number" id="questionTime" value="30" min="10" max="120" />
 
-  <button onclick="startGame()">ابدأ اللعبة 🎉</button>
+  <button id="createGameBtn">أنشئ اللعبة</button>
 
-  <div id="gameCodeSection" style="display: none;">
+  <div id="gameCodeSection" style="display:none;">
     <h2>🔐 كود اللعبة: <span id="gameCode"></span></h2>
     <p>شارك الرابط التالي مع أصحابك:</p>
     <p id="gameLink"></p>
     <div id="qr"></div>
-    <p style="color: green;">🚀 سيتم تحويلك إلى اللعبة تلقائيًا...</p>
+
+    <h3>قائمة اللاعبين المنضمين:</h3>
+    <ul id="playersList"></ul>
+
+    <button id="startGameBtn">ابدأ اللعبة 🎉</button>
   </div>
 
   <script>
-    const socket = io('https://ka3boura-game.onrender.com');
+    const socket = io();
 
-    function startGame() {
+    let currentGameCode = null;
+
+    document.getElementById('createGameBtn').addEventListener('click', () => {
       const hostName = document.getElementById('hostName').value.trim();
       const category = document.getElementById('category').value;
       const questionCount = parseInt(document.getElementById('questionCount').value, 10);
@@ -84,25 +99,37 @@
       }
 
       socket.emit('host-create-game', { hostName, category, questionCount, questionTime });
-    }
+    });
 
     socket.on('game-created', ({ gameCode }) => {
+      currentGameCode = gameCode;
       document.getElementById('gameCode').innerText = gameCode;
       const link = `${location.origin}/join.html?code=${gameCode}`;
       document.getElementById('gameLink').innerText = link;
       new QRCode(document.getElementById('qr'), link);
       document.getElementById('gameCodeSection').style.display = 'block';
+    });
 
-      // حفظ البيانات
-      const hostName = document.getElementById('hostName').value.trim();
-      localStorage.setItem('playerName', hostName);
-      localStorage.setItem('gameCode', gameCode);
-      localStorage.setItem('isHost', 'true'); // << ضروري جدا للمضيف
+    socket.on('player-joined', ({ playerId, playerName }) => {
+      const playersList = document.getElementById('playersList');
+      const li = document.createElement('li');
+      li.id = `player-${playerId}`;
+      li.textContent = playerName;
+      playersList.appendChild(li);
+    });
 
-      // تحويل تلقائي بعد 5 ثوانٍ
-      setTimeout(() => {
-        window.location.href = 'game.html';
-      }, 5000);
+    document.getElementById('startGameBtn').addEventListener('click', () => {
+      if (!currentGameCode) {
+        alert('لم يتم إنشاء اللعبة بعد');
+        return;
+      }
+      socket.emit('host-start-game', { gameCode: currentGameCode });
+      alert('تم بدء اللعبة للجميع!');
+      document.getElementById('startGameBtn').disabled = true;
+    });
+
+    socket.on('game-started', () => {
+      // ممكن تعمل حاجات إضافية لما تبدأ اللعبة بالمضيف
     });
   </script>
 </body>
