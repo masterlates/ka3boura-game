@@ -143,15 +143,31 @@
       });
     });
 
-    startGameBtn.onclick = () => {
-      if (!gameCode) {
-        alert('لا توجد لعبة للبدء');
-        return;
-      }
-      socket.emit('host-start-game', { gameCode });
-      // بعد بدء اللعبة، انتقل لصفحة اللعب كـ لاعب عادي
-      window.location.href = 'game.html';
-    };
+   startGameBtn.onclick = () => {
+  if (!gameCode) {
+    alert('لا توجد لعبة للبدء');
+    return;
+  }
+
+  // ❗ أرسل نفسك كلاعب للسيرفر قبل بدء اللعبة
+  socket.emit('player-join-game', {
+    playerName: hostName,
+    gameCode: gameCode
+  });
+
+  // ❗ بعد 200ms نبدأ اللعبة
+  setTimeout(() => {
+    socket.emit('host-start-game', { gameCode });
+
+    // ❗ نحفظ الاسم والكود للتأكد أن game.html تشتغل
+    localStorage.setItem('playerName', hostName);
+    localStorage.setItem('gameCode', gameCode);
+
+    // ❗ نفتح game.html
+    window.location.href = 'game.html';
+  }, 200);
+};
+
   </script>
 </body>
 </html>
