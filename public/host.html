@@ -3,13 +3,51 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>✮ كعبورة يجاوب - المضيف</title>
+  <title>🎮 كعبورة يجاوب - المضيف</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #fdf1f1;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 {
+      color: #e84118;
+      font-size: 2em;
+    }
+    label, input, select, button {
+      font-size: 1.1em;
+      margin: 10px auto;
+      display: block;
+      width: 80%;
+    }
+    button {
+      background-color: #e84118;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #qr {
+      margin-top: 20px;
+    }
+    #playersList {
+      margin-top: 20px;
+      font-size: 1.2em;
+      color: #333;
+      text-align: right;
+      width: 80%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  </style>
 </head>
 <body>
-  <h1>✮ كعبورة يجاوب - المضيف</h1>
+  <h1>🎮 كعبورة يجاوب - المضيف</h1>
 
   <label>اسمك:</label>
   <input type="text" id="hostName" placeholder="اكتب اسمك" />
@@ -32,18 +70,18 @@
   <button id="createGameBtn">أنشئ اللعبة</button>
 
   <div id="gameCodeSection" style="display: none;">
-    <h2>✮ كود اللعبة: <span id="gameCode"></span></h2>
-    <p>شارك الرابط مع أصدقائك:</p>
+    <h2>🔐 كود اللعبة: <span id="gameCode"></span></h2>
+    <p>شارك الرابط التالي مع أصحابك:</p>
     <p id="gameLink" style="word-break: break-all;"></p>
     <div id="qr"></div>
   </div>
 
   <div id="playersList" style="display:none;">
-    <h3>اللاعبون المنضمين:</h3>
+    <h3>اللاعبون الذين انضموا:</h3>
     <ul id="playersUl"></ul>
   </div>
 
-  <button id="startGameBtn" style="display:none;">ابدأ اللعبة للجميع ✨</button>
+  <button id="startGameBtn" style="display:none;">ابدأ اللعبة للجميع 🎉</button>
 
   <script>
     const socket = io();
@@ -70,7 +108,10 @@
       const questionCount = parseInt(questionCountInput.value);
       const questionTime = parseInt(questionTimeInput.value);
 
-      if (!hostName) return alert('الرجاء إدخال اسم المضيف');
+      if (!hostName) {
+        alert('الرجاء إدخال اسم المضيف');
+        return;
+      }
 
       socket.emit('host-create-game', { hostName, category, questionCount, questionTime });
     };
@@ -80,33 +121,35 @@
       gameCodeSpan.innerText = gameCode;
       const link = `${location.origin}/join.html?code=${gameCode}`;
       gameLinkP.innerText = link;
+
       qrDiv.innerHTML = '';
       new QRCode(qrDiv, link);
+
       gameCodeSection.style.display = 'block';
       playersListDiv.style.display = 'block';
       startGameBtn.style.display = 'inline-block';
 
-      // تخزين للمضيف ليشارك كلاعب
+      // احفظ في localStorage حتى تنتقل للعبة لاحقاً
       localStorage.setItem('playerName', hostName);
       localStorage.setItem('gameCode', gameCode);
     });
 
-    socket.on('player-joined', ({ playerName }) => {
-      const li = document.createElement('li');
-      li.textContent = playerName;
-      playersUl.appendChild(li);
+    socket.on('player-list', (players) => {
+      playersUl.innerHTML = '';
+      players.forEach(name => {
+        const li = document.createElement('li');
+        li.textContent = name;
+        playersUl.appendChild(li);
+      });
     });
 
     startGameBtn.onclick = () => {
-      if (!gameCode || !hostName) return alert('لا توجد لعبة للبدء');
-
-      // المضيف يشارك كلاعب
-      socket.emit('player-join-game', { playerName: hostName, gameCode });
-
-      // ثم يبدأ اللعبة
+      if (!gameCode) {
+        alert('لا توجد لعبة للبدء');
+        return;
+      }
       socket.emit('host-start-game', { gameCode });
-
-      // نقل لصفحة اللعب
+      // بعد بدء اللعبة، انتقل لصفحة اللعب كـ لاعب عادي
       window.location.href = 'game.html';
     };
   </script>
