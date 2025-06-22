@@ -28,6 +28,7 @@
       const playerName = document.getElementById('playerName').value.trim();
       const gameCode = document.getElementById('gameCode').value.trim().toUpperCase();
       if (!playerName || !gameCode) return alert('رجاء إدخال اسمك وكود اللعبة');
+
       socket.emit('player-join-game', { playerName, gameCode });
 
       socket.on('error-message', (msg) => alert(msg));
