@@ -58,7 +58,7 @@ io.on('connection', (socket) => {
     if (!games[gameCode]) return;
     games[gameCode].started = true;
     games[gameCode].currentQuestionIndex = 0;
-    io.to(gameCode).emit('game-started');
+    io.in(gameCode).emit('game-started'); // ← التعديل هنا فقط
   });
 
   socket.on('player-answer', ({ gameCode, answer }) => {
