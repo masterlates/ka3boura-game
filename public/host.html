@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>🎮 كعبورة يجاوب - المضيف واللعب</title>
+  <title>🎮 كعبورة يجاوب - المضيف</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
@@ -20,10 +20,10 @@
     }
     label, input, select, button {
       font-size: 1.1em;
-      margin: 10px auto;
+      margin: 10px;
       display: block;
       width: 80%;
-      max-width: 400px;
+      margin: 10px auto;
     }
     button {
       background-color: #e84118;
@@ -45,76 +45,32 @@
       margin-left: auto;
       margin-right: auto;
     }
-    #gameSection {
-      margin-top: 30px;
-      display: none;
-    }
-    #question {
-      font-size: 1.5em;
-      margin-bottom: 15px;
-    }
-    #timer {
-      font-size: 1.3em;
-      margin-bottom: 15px;
-      color: #e84118;
-    }
-    #answerInput {
-      font-size: 1.2em;
-      padding: 8px;
-      width: 80%;
-      max-width: 400px;
-      margin-bottom: 15px;
-    }
-    #submitBtn {
-      background-color: #e84118;
-      color: white;
-      border: none;
-      padding: 12px 25px;
-      font-size: 1.2em;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    #submitBtn:disabled {
-      background-color: #aaa;
-      cursor: not-allowed;
-    }
-    #result {
-      font-size: 1.3em;
-      margin-top: 15px;
-    }
-    #score {
-      margin-top: 20px;
-      font-size: 1.4em;
-    }
   </style>
 </head>
 <body>
+  <h1>🎮 كعبورة يجاوب - المضيف</h1>
 
-  <h1>🎮 كعبورة يجاوب - المضيف واللعب</h1>
+  <label>اسمك:</label>
+  <input type="text" id="hostName" placeholder="اكتب اسمك" />
 
-  <div id="setupSection">
-    <label>اسمك:</label>
-    <input type="text" id="hostName" placeholder="اكتب اسمك" />
+  <label>التصنيف:</label>
+  <select id="category">
+    <option value="عام">عام</option>
+    <option value="ثقافة عامة">ثقافة عامة</option>
+    <option value="شوفلي حل">شوفلي حل</option>
+    <option value="تاريخ تونسي">تاريخ تونسي</option>
+    <option value="مسلسلات">مسلسلات</option>
+  </select>
 
-    <label>التصنيف:</label>
-    <select id="category">
-      <option value="عام">عام</option>
-      <option value="ثقافة عامة">ثقافة عامة</option>
-      <option value="شوفلي حل">شوفلي حل</option>
-      <option value="تاريخ تونسي">تاريخ تونسي</option>
-      <option value="مسلسلات">مسلسلات</option>
-    </select>
+  <label>عدد الأسئلة:</label>
+  <input type="number" id="questionCount" value="5" min="1" max="20" />
 
-    <label>عدد الأسئلة:</label>
-    <input type="number" id="questionCount" value="3" min="1" max="20" />
+  <label>مدة كل سؤال (بالثواني):</label>
+  <input type="number" id="questionTime" value="30" min="10" max="120" />
 
-    <label>مدة كل سؤال (بالثواني):</label>
-    <input type="number" id="questionTime" value="30" min="10" max="120" />
+  <button id="createGameBtn">أنشئ اللعبة</button>
 
-    <button id="createGameBtn">أنشئ اللعبة</button>
-  </div>
-
-  <div id="gameCodeSection" style="display:none;">
+  <div id="gameCodeSection" style="display: none;">
     <h2>🔐 كود اللعبة: <span id="gameCode"></span></h2>
     <p>شارك الرابط التالي مع أصحابك:</p>
     <p id="gameLink" style="word-break: break-all;"></p>
@@ -128,25 +84,8 @@
 
   <button id="startGameBtn" style="display:none;">ابدأ اللعبة للجميع 🎉</button>
 
-  <div id="gameSection">
-    <div id="question"></div>
-    <div id="timer">الوقت المتبقي: <span id="time"></span> ثانية</div>
-    <input type="text" id="answerInput" placeholder="أكتب جوابك هنا..." autocomplete="off" />
-    <br />
-    <button id="submitBtn">أرسل الجواب</button>
-    <div id="result"></div>
-    <div id="score">نقاطك: <span id="playerScore">0</span></div>
-  </div>
-
   <script>
     const socket = io();
-
-    let gameCode = null;
-    let hostName = '';
-    let currentQuestion = -1;
-    let timeLeft = 0;
-    let timerId = null;
-    let score = 0;
 
     const hostNameInput = document.getElementById('hostName');
     const categorySelect = document.getElementById('category');
@@ -160,25 +99,20 @@
     const playersListDiv = document.getElementById('playersList');
     const playersUl = document.getElementById('playersUl');
     const startGameBtn = document.getElementById('startGameBtn');
-    const gameSection = document.getElementById('gameSection');
-    const questionEl = document.getElementById('question');
-    const timeEl = document.getElementById('time');
-    const answerInput = document.getElementById('answerInput');
-    const submitBtn = document.getElementById('submitBtn');
-    const resultEl = document.getElementById('result');
-    const scoreEl = document.getElementById('score');
-    const playerScoreEl = document.getElementById('playerScore');
-    const setupSection = document.getElementById('setupSection');
+
+    let gameCode = null;
+    let hostName = '';
 
     createGameBtn.onclick = () => {
       hostName = hostNameInput.value.trim();
+      const category = categorySelect.value;
+      const questionCount = parseInt(questionCountInput.value);
+      const questionTime = parseInt(questionTimeInput.value);
+
       if (!hostName) {
         alert('الرجاء إدخال اسم المضيف');
         return;
       }
-      const category = categorySelect.value;
-      const questionCount = parseInt(questionCountInput.value);
-      const questionTime = parseInt(questionTimeInput.value);
 
       socket.emit('host-create-game', { hostName, category, questionCount, questionTime });
     };
@@ -188,16 +122,18 @@
       gameCodeSpan.innerText = gameCode;
       const link = `${location.origin}/join.html?code=${gameCode}`;
       gameLinkP.innerText = link;
+
+      // توليد QR Code للرابط
       qrDiv.innerHTML = '';
       new QRCode(qrDiv, link);
 
       gameCodeSection.style.display = 'block';
       playersListDiv.style.display = 'block';
       startGameBtn.style.display = 'inline-block';
-      setupSection.style.display = 'none';
 
-      // انضمام المضيف كلاعب مع نفس الاسم
-      socket.emit('player-join-game', { playerName: hostName, gameCode });
+      // نخزن اسم المضيف والكود للانتقال للعب
+      localStorage.setItem('playerName', hostName);
+      localStorage.setItem('gameCode', gameCode);
     });
 
     socket.on('player-joined', ({ playerName }) => {
@@ -211,68 +147,16 @@
         alert('لا توجد لعبة للبدء');
         return;
       }
+
+      // ⚠️ هذا السطر يجعل المضيف ينضم كلاعب
+      socket.emit('player-join-game', { playerName: hostName, gameCode });
+
+      // بدء اللعبة
       socket.emit('host-start-game', { gameCode });
+
+      // انتقل إلى صفحة اللعب
+      window.location.href = 'game.html';
     };
-
-    // استقبال بدء اللعبة لجميع اللاعبين (بما فيهم المضيف)
-    socket.on('game-started', () => {
-      playersListDiv.style.display = 'none';
-      startGameBtn.style.display = 'none';
-      gameSection.style.display = 'block';
-      nextQuestion();
-    });
-
-    function nextQuestion() {
-      const sampleQuestions = [
-        { text: "عاصمة تونس شنوّة؟", answers: ["تونس", "tunis"] },
-        { text: "أشهر أكلات تونسية؟", answers: ["كسكسي", "كسكس"] },
-        { text: "لون العلم التونسي؟", answers: ["أحمر", "احمر"] }
-      ];
-
-      currentQuestion++;
-      if (currentQuestion >= sampleQuestions.length) {
-        alert('انتهت الجولة!');
-        location.reload(); // تعيد تحميل الصفحة للبدء من جديد
-        return;
-      }
-
-      showQuestion(sampleQuestions[currentQuestion]);
-    }
-
-    function showQuestion(question) {
-      questionEl.textContent = question.text;
-      answerInput.value = '';
-      resultEl.textContent = '';
-      answerInput.disabled = false;
-      submitBtn.disabled = false;
-
-      timeLeft = parseInt(questionTimeInput.value);
-      timeEl.textContent = timeLeft;
-
-      if (timerId) clearInterval(timerId);
-      timerId = setInterval(() => {
-        timeLeft--;
-        timeEl.textContent = timeLeft;
-        if (timeLeft <= 0) {
-          clearInterval(timerId);
-          submitBtn.disabled = true;
-          resultEl.textContent = 'انتهى الوقت!';
-          setTimeout(nextQuestion, 2000);
-        }
-      }, 1000);
-    }
-
-    submitBtn.addEventListener('click', () => {
-      const answer = answerInput.value.trim();
-      if (!answer) return;
-      socket.emit('player-answer', { gameCode, answer });
-      resultEl.textContent = 'تم إرسال جوابك';
-      answerInput.disabled = true;
-      submitBtn.disabled = true;
-      score++;
-      playerScoreEl.textContent = score;
-    });
   </script>
-
 </body>
 </html>
