@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>🎮 كعبورة يجاوب - المضيف</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
   <style>
     body {
       font-family: 'Arial', sans-serif;
@@ -31,14 +31,23 @@
       border: none;
       border-radius: 8px;
       cursor: pointer;
+      margin-top: 10px;
+    }
+    #qr {
+      margin-top: 20px;
     }
     #playersList {
       margin-top: 20px;
-      font-size: 1.2em;
-      color: #333;
-    }
-    #gameLink, #qr {
-      margin-top: 15px;
+      background: #fff5f5;
+      border-radius: 10px;
+      padding: 15px;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+      box-shadow: 0 4px 8px #e8411820;
+      text-align: right;
+      font-weight: bold;
+      color: #e84118;
     }
   </style>
 </head>
@@ -63,23 +72,38 @@
   <label>مدة كل سؤال (بالثواني):</label>
   <input type="number" id="questionTime" value="30" min="10" max="120" />
 
-  <button onclick="createGame()">أنشئ اللعبة</button>
+  <button id="createGameBtn">إنشاء اللعبة</button>
 
-  <div id="gameInfo" style="display: none;">
+  <div id="gameCodeSection" style="display: none;">
     <h2>🔐 كود اللعبة: <span id="gameCode"></span></h2>
-    <p>شارك هذا الرابط مع أصحابك:</p>
+    <p>شارك الرابط التالي مع أصحابك:</p>
     <p id="gameLink"></p>
     <div id="qr"></div>
-    <ul id="playersList"></ul>
-    <button onclick="startGame()">🚀 ابدأ اللعبة للجميع</button>
   </div>
+
+  <div id="playersList" style="display:none;">
+    <h3>📋 اللاعبين الحاليين:</h3>
+    <ul id="playersUl"></ul>
+  </div>
+
+  <button id="startGameBtn" style="display:none;">ابدأ اللعبة للجميع 🚀</button>
 
   <script>
     const socket = io();
-    let gameCode = '';
-    let hostName = '';
 
-    function createGame() {
+    let gameCode = null;
+    let hostName = null;
+
+    const createGameBtn = document.getElementById('createGameBtn');
+    const startGameBtn = document.getElementById('startGameBtn');
+    const gameCodeSection = document.getElementById('gameCodeSection');
+    const gameCodeSpan = document.getElementById('gameCode');
+    const gameLinkP = document.getElementById('gameLink');
+    const qrDiv = document.getElementById('qr');
+    const playersListDiv = document.getElementById('playersList');
+    const playersUl = document.getElementById('playersUl');
+
+    createGameBtn.onclick = () => {
       hostName = document.getElementById('hostName').value.trim();
       const category = document.getElementById('category').value;
       const questionCount = parseInt(document.getElementById('questionCount').value, 10);
@@ -91,32 +115,50 @@
       }
 
       socket.emit('host-create-game', { hostName, category, questionCount, questionTime });
-    }
+    };
 
-    socket.on('game-created', (data) => {
-      gameCode = data.gameCode;
+    socket.on('game-created', ({ gameCode: code }) => {
+      gameCode = code;
+      gameCodeSpan.textContent = gameCode;
+      const link = `${location.origin}/join.html?code=${gameCode}`;
+      gameLinkP.textContent = link;
+      new QRCode(qrDiv, link);
+      gameCodeSection.style.display = 'block';
+      playersListDiv.style.display = 'block';
+      startGameBtn.style.display = 'inline-block';
+
+      // حفظ اسم المضيف وكود اللعبة
       localStorage.setItem('playerName', hostName);
       localStorage.setItem('gameCode', gameCode);
-      document.getElementById('gameCode').textContent = gameCode;
+    });
 
-      const fullLink = `${location.origin}/join.html?code=${gameCode}`;
-      document.getElementById('gameLink').textContent = fullLink;
-      new QRCode(document.getElementById('qr'), fullLink);
-
-      document.getElementById('gameInfo').style.display = 'block';
+    // تحديث قائمة اللاعبين
+    socket.on('player-list', (players) => {
+      playersUl.innerHTML = '';
+      players.forEach(player => {
+        const li = document.createElement('li');
+        li.textContent = player;
+        playersUl.appendChild(li);
+      });
     });
 
     socket.on('player-joined', ({ playerName }) => {
-      const list = document.getElementById('playersList');
-      const item = document.createElement('li');
-      item.textContent = playerName;
-      list.appendChild(item);
+      // هذه حدث إضافي إن أردت أي شيء عند انضمام لاعب جديد
+      console.log(`انضم لاعب جديد: ${playerName}`);
     });
 
-    function startGame() {
+    socket.on('player-left', ({ playerName }) => {
+      console.log(`خرج اللاعب: ${playerName}`);
+    });
+
+    startGameBtn.onclick = () => {
+      if (!gameCode) {
+        alert('لا توجد لعبة لإنطلاقها');
+        return;
+      }
       socket.emit('host-start-game', { gameCode });
-      window.location.href = 'game.html';
-    }
+      alert('تم بدء اللعبة. سيتم تحويل اللاعبين إلى صفحة اللعب.');
+    };
   </script>
 </body>
 </html>
