@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>🔑 كعبورة يجاوب - انضمام لاعب</title>
 <link rel="stylesheet" href="style.css" />
-<script src="https://ka3boura-game.onrender.com/socket.io/socket.io.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 <style>
   body {
     font-family: 'Arial', sans-serif;
@@ -45,7 +45,7 @@
   <button onclick="joinGame()">انضم 🚀</button>
 
   <script>
-    const socket = io('https://ka3boura-game.onrender.com');
+    const socket = io();
 
     // تعبئة كود اللعبة من الرابط لو موجود
     const urlParams = new URLSearchParams(window.location.search);
@@ -53,19 +53,6 @@
     if (codeFromURL) {
       document.getElementById('gameCode').value = codeFromURL;
     }
-
-    // نضع الـ event listeners خارج دالة joinGame
-    socket.on('error-message', (msg) => {
-      alert(msg);
-    });
-
-    socket.on('joined-success', () => {
-      const playerName = document.getElementById('playerName').value.trim();
-      const gameCode = document.getElementById('gameCode').value.trim().toUpperCase();
-      localStorage.setItem('playerName', playerName);
-      localStorage.setItem('gameCode', gameCode);
-      window.location.href = 'game.html';
-    });
 
     function joinGame() {
       const playerName = document.getElementById('playerName').value.trim();
@@ -77,6 +64,17 @@
       }
 
       socket.emit('player-join-game', { playerName, gameCode });
+
+      socket.on('error-message', (msg) => {
+        alert(msg);
+      });
+
+      socket.on('joined-success', () => {
+        // تخزين الاسم والكود للعبة القادمة
+        localStorage.setItem('playerName', playerName);
+        localStorage.setItem('gameCode', gameCode);
+        window.location.href = 'game.html';
+      });
     }
   </script>
 </body>
