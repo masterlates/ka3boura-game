@@ -1,7 +1,7 @@
 const express = require('express');
 const http = require('http');
-const { Server } = require('socket.io');
 const path = require('path');
+const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
@@ -9,8 +9,13 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 
-// خدمة ملفات الواجهة الثابتة
+// خدمة الملفات الثابتة (HTML, CSS, JS)
 app.use(express.static(path.join(__dirname, 'public')));
+
+// الصفحة الرئيسية ترجع host.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'host.html'));
+});
 
 let games = {};
 
