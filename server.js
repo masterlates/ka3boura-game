@@ -9,8 +9,10 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 
+// ملفات ثابتة
 app.use(express.static(path.join(__dirname, 'public')));
 
+// الصفحة الرئيسية
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'host.html'));
 });
@@ -18,7 +20,7 @@ app.get('/', (req, res) => {
 let games = {};
 
 io.on('connection', (socket) => {
-  console.log('✅ مستخدم متصل: ' + socket.id);
+  console.log('🟢 اتصال جديد:', socket.id);
 
   socket.on('host-create-game', ({ hostName, category, questionCount, questionTime }) => {
     const gameCode = Math.random().toString(36).substr(2, 4).toUpperCase();
@@ -30,45 +32,48 @@ io.on('connection', (socket) => {
       questionTime,
       players: {},
       started: false,
+      currentQuestionIndex: 0,
     };
     socket.join(gameCode);
     socket.emit('game-created', { gameCode });
-    console.log(`🎮 لعبة جديدة: ${gameCode} بواسطة ${hostName}`);
+    console.log(`🎮 لعبة جديدة: ${gameCode} أنشأها ${hostName}`);
   });
 
   socket.on('player-join-game', ({ playerName, gameCode }) => {
-    if (!games[gameCode]) {
+    const game = games[gameCode];
+    if (!game) {
       socket.emit('error-message', '❌ الكود غير صحيح أو اللعبة غير موجودة');
       return;
     }
 
-    games[gameCode].players[socket.id] = {
-      name: playerName,
-      score: 0,
-    };
-
+    game.players[socket.id] = { name: playerName, score: 0 };
     socket.join(gameCode);
-    io.to(games[gameCode].hostId).emit('player-joined', { playerId: socket.id, playerName });
     socket.emit('joined-success');
-    console.log(`✅ ${playerName} انضم للعبة ${gameCode}`);
+    io.to(game.hostId).emit('player-joined', { playerName });
+    console.log(`✅ ${playerName} انضم إلى اللعبة ${gameCode}`);
   });
 
   socket.on('host-start-game', ({ gameCode }) => {
-    if (!games[gameCode]) return;
-    games[gameCode].started = true;
+    const game = games[gameCode];
+    if (!game) return;
+
+    game.started = true;
+    game.currentQuestionIndex = 0;
     io.to(gameCode).emit('game-started');
-    console.log(`🚀 بدء اللعبة ${gameCode}`);
+    console.log(`🚀 بدء اللعبة: ${gameCode}`);
   });
 
   socket.on('player-answer', ({ gameCode, answer }) => {
-    console.log(`📩 جواب من لاعب في ${gameCode}: ${answer}`);
+    console.log(`📩 إجابة من لاعب في ${gameCode}: ${answer}`);
+    // بإمكانك مستقبلاً تقارن الإجابة وتحسب النقاط
   });
 
   socket.on('disconnect', () => {
-    console.log('❎ مستخدم فصل: ' + socket.id);
+    console.log('🔌 قطع الاتصال:', socket.id);
+    // ممكن تحذف اللاعب من اللعبة أو تحدث القائمة
   });
 });
 
 server.listen(PORT, () => {
-  console.log(`🚀 السيرفر شغال على المنفذ ${PORT}`);
+  console.log(`✅ السيرفر شغال على http://localhost:${PORT}`);
 });
