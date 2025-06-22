@@ -6,176 +6,108 @@
   <title>🎯 كعبورة يجاوب - اللعب</title>
   <link rel="stylesheet" href="style.css" />
   <script src="/socket.io/socket.io.js"></script>
-  <style>
-    body {
-      font-family: 'Arial', sans-serif;
-      background: #f0f8ff;
-      padding: 20px;
-      text-align: center;
-    }
-    #question {
-      font-size: 1.5em;
-      margin-bottom: 15px;
-    }
-    #timer {
-      font-size: 1.3em;
-      margin-bottom: 15px;
-      color: #e84118;
-    }
-    input[type="text"] {
-      font-size: 1.2em;
-      padding: 8px;
-      width: 80%;
-      max-width: 400px;
-      margin-bottom: 15px;
-    }
-    button {
-      background-color: #e84118;
-      color: white;
-      border: none;
-      padding: 12px 25px;
-      font-size: 1.2em;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    button:disabled {
-      background-color: #aaa;
-      cursor: not-allowed;
-    }
-    #result {
-      font-size: 1.3em;
-      margin-top: 15px;
-    }
-    #score {
-      margin-top: 20px;
-      font-size: 1.4em;
-    }
-  </style>
 </head>
 <body>
+  <h1>🎯 كعبورة يجاوب - اللعب</h1>
 
-<h1>🎯 كعبورة يجاوب - اللعب</h1>
+  <div id="waitingSection">
+    <p>جاري انتظار بدء اللعبة من المضيف...</p>
+  </div>
 
-<div id="waitingSection">
-  <p>جاري انتظار بدء اللعبة من المضيف...</p>
-</div>
+  <div id="questionSection" style="display:none;">
+    <div id="question"></div>
+    <div id="timer">الوقت المتبقي: <span id="time">30</span> ثانية</div>
+    <input type="text" id="answerInput" placeholder="أكتب جوابك هنا..." autocomplete="off" />
+    <br />
+    <button id="submitBtn">أرسل الجواب</button>
+    <div id="result"></div>
+  </div>
 
-<div id="questionSection" style="display:none;">
-  <div id="question">...</div>
-  <div id="timer">الوقت المتبقي: <span id="time">30</span> ثانية</div>
-  <input type="text" id="answerInput" placeholder="أكتب جوابك هنا..." autocomplete="off" />
-  <br />
-  <button id="submitBtn">أرسل الجواب</button>
-  <div id="result"></div>
-</div>
+  <div id="score" style="display:none;">
+    نقاطك: <span id="playerScore">0</span>
+  </div>
 
-<div id="score" style="display:none;">
-  نقاطك: <span id="playerScore">0</span>
-</div>
+  <script>
+    const socket = io();
+    const playerName = localStorage.getItem('playerName');
+    const gameCode = localStorage.getItem('gameCode');
 
-<script>
-  const socket = io();
-
-  const playerName = localStorage.getItem('playerName');
-  const gameCode = localStorage.getItem('gameCode');
-
-  if (!playerName || !gameCode) {
-    alert('الرجاء الانضمام للعبة أولاً.');
-    window.location.href = 'join.html';
-  }
-
-  socket.emit('player-join-game', { playerName, gameCode });
-
-  socket.on('joined-success', () => console.log('تم الانضمام للعبة'));
-
-  socket.on('error-message', (msg) => alert(msg));
-
-  const waitingSection = document.getElementById('waitingSection');
-  const questionSection = document.getElementById('questionSection');
-  const questionEl = document.getElementById('question');
-  const timeEl = document.getElementById('time');
-  const answerInput = document.getElementById('answerInput');
-  const submitBtn = document.getElementById('submitBtn');
-  const resultEl = document.getElementById('result');
-  const playerScoreEl = document.getElementById('playerScore');
-  const scoreDiv = document.getElementById('score');
-
-  let timerId = null;
-  let timeLeft = 0;
-  let currentQuestionIndex = -1;
-  let playerScore = 0;
-
-  // أمثلة أسئلة (يمكن التعديل لتأتي من السيرفر)
-  const questions = [
-    { text: "عاصمة تونس شنوّة؟", answers: ["تونس", "tunis"] },
-    { text: "أشهر أكلات تونسية؟", answers: ["كسكسي", "كسكس"] },
-    { text: "لون العلم التونسي؟", answers: ["أحمر", "احمر"] }
-  ];
-
-  // عند بدء اللعبة
-  socket.on('game-started', () => {
-    waitingSection.style.display = 'none';
-    questionSection.style.display = 'block';
-    scoreDiv.style.display = 'block';
-    playerScoreEl.textContent = playerScore;
-    currentQuestionIndex = -1;
-    nextQuestion();
-  });
-
-  // عرض السؤال التالي
-  function nextQuestion() {
-    currentQuestionIndex++;
-    if (currentQuestionIndex >= questions.length) {
-      alert(`انتهت الجولة! نقاطك: ${playerScore}`);
+    if (!playerName || !gameCode) {
+      alert('انضم للعبة أولاً.');
       window.location.href = 'join.html';
-      return;
     }
-    showQuestion(questions[currentQuestionIndex]);
-  }
 
-  function showQuestion(question) {
-    questionEl.textContent = question.text;
-    answerInput.value = '';
-    resultEl.textContent = '';
-    answerInput.disabled = false;
-    submitBtn.disabled = false;
+    socket.emit('player-join-game', { playerName, gameCode });
 
-    timeLeft = 30;
-    timeEl.textContent = timeLeft;
+    socket.on('joined-success', () => console.log('تم الانضمام'));
 
-    if (timerId) clearInterval(timerId);
-    timerId = setInterval(() => {
-      timeLeft--;
-      timeEl.textContent = timeLeft;
-      if (timeLeft <= 0) {
-        clearInterval(timerId);
-        submitBtn.disabled = true;
-        resultEl.textContent = 'انتهى الوقت!';
-        setTimeout(nextQuestion, 2000);
+    socket.on('game-started', () => {
+      document.getElementById('waitingSection').style.display = 'none';
+      document.getElementById('questionSection').style.display = 'block';
+      document.getElementById('score').style.display = 'block';
+      nextQuestion();
+    });
+
+    const questionSection = document.getElementById('questionSection');
+    const questionEl = document.getElementById('question');
+    const timeEl = document.getElementById('time');
+    const answerInput = document.getElementById('answerInput');
+    const submitBtn = document.getElementById('submitBtn');
+    const resultEl = document.getElementById('result');
+    const playerScoreEl = document.getElementById('playerScore');
+
+    let timeLeft = 0;
+    let timerId = null;
+    let currentQuestion = -1;
+
+    function nextQuestion() {
+      const sampleQuestions = [
+        { text: "عاصمة تونس شنوّة؟", answers: ["تونس", "tunis"] },
+        { text: "أشهر أكلات تونسية؟", answers: ["كسكسي", "كسكس"] },
+        { text: "لون العلم التونسي؟", answers: ["أحمر", "احمر"] }
+      ];
+
+      currentQuestion++;
+      if (currentQuestion >= sampleQuestions.length) {
+        alert('انتهت الجولة!');
+        window.location.href = 'join.html';
+        return;
       }
-    }, 1000);
-  }
 
-  submitBtn.addEventListener('click', () => {
-    const answer = answerInput.value.trim();
-    if (!answer) return;
-
-    // تحقق من الإجابة صحيحة من القائمة
-    const correctAnswers = questions[currentQuestionIndex].answers.map(a => a.toLowerCase());
-    if (correctAnswers.includes(answer.toLowerCase())) {
-      playerScore++;
-      playerScoreEl.textContent = playerScore;
-      resultEl.textContent = 'جواب صحيح! ✅';
-    } else {
-      resultEl.textContent = 'جواب خاطئ ❌';
+      showQuestion(sampleQuestions[currentQuestion]);
     }
 
-    socket.emit('player-answer', { gameCode, answer });
+    function showQuestion(question) {
+      questionEl.textContent = question.text;
+      answerInput.value = '';
+      resultEl.textContent = '';
+      answerInput.disabled = false;
+      submitBtn.disabled = false;
 
-    answerInput.disabled = true;
-    submitBtn.disabled = true;
-  });
-</script>
+      timeLeft = 30;
+      timeEl.textContent = timeLeft;
 
+      if (timerId) clearInterval(timerId);
+      timerId = setInterval(() => {
+        timeLeft--;
+        timeEl.textContent = timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(timerId);
+          submitBtn.disabled = true;
+          resultEl.textContent = 'انتهى الوقت!';
+          setTimeout(nextQuestion, 2000);
+        }
+      }, 1000);
+    }
+
+    submitBtn.addEventListener('click', () => {
+      const answer = answerInput.value.trim();
+      if (!answer) return;
+      socket.emit('player-answer', { gameCode, answer });
+      resultEl.textContent = 'تم إرسال جوابك';
+      answerInput.disabled = true;
+      submitBtn.disabled = true;
+    });
+  </script>
 </body>
 </html>
