@@ -20,9 +20,10 @@
     }
     label, input, select, button {
       font-size: 1.1em;
-      margin: 10px auto;
+      margin: 10px;
       display: block;
       width: 80%;
+      margin: 10px auto;
     }
     button {
       background-color: #e84118;
@@ -130,16 +131,19 @@
       playersListDiv.style.display = 'block';
       startGameBtn.style.display = 'inline-block';
 
-      // خزّن اسم المضيف والكود في localStorage للعب لاحقاً كمضيف
+      // نخزن المضيف واللعبة محلياً
       localStorage.setItem('playerName', hostName);
       localStorage.setItem('gameCode', gameCode);
-      localStorage.setItem('isHost', 'true');
     });
 
-    socket.on('player-joined', ({ playerName }) => {
-      const li = document.createElement('li');
-      li.textContent = playerName;
-      playersUl.appendChild(li);
+    // تحديث قائمة اللاعبين لكل مرة تتغير
+    socket.on('player-list', (playerNames) => {
+      playersUl.innerHTML = '';
+      playerNames.forEach(name => {
+        const li = document.createElement('li');
+        li.textContent = name;
+        playersUl.appendChild(li);
+      });
     });
 
     startGameBtn.onclick = () => {
@@ -148,8 +152,7 @@
         return;
       }
       socket.emit('host-start-game', { gameCode });
-
-      // انتقل إلى صفحة اللعبة فوراً
+      // المضيف يدخل صفحة اللعب وينتظر بداية اللعبة عبر الحدث 'game-started'
       window.location.href = 'game.html';
     };
   </script>
