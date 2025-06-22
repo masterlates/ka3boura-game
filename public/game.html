@@ -31,6 +31,7 @@
     const socket = io();
     const playerName = localStorage.getItem('playerName');
     const gameCode = localStorage.getItem('gameCode');
+    const isHost = localStorage.getItem('isHost') === 'true';
 
     if (!playerName || !gameCode) {
       alert('انضم للعبة أولاً.');
@@ -41,12 +42,22 @@
 
     socket.on('joined-success', () => console.log('تم الانضمام'));
 
-    socket.on('game-started', () => {
+    if (isHost) {
+      // المضيف يبدأ اللعب مباشرة بدون انتظار رسالة
+      startGame();
+    } else {
+      // اللاعبون ينتظرون بدء اللعبة من المضيف
+      socket.on('game-started', () => {
+        startGame();
+      });
+    }
+
+    function startGame() {
       document.getElementById('waitingSection').style.display = 'none';
       document.getElementById('questionSection').style.display = 'block';
       document.getElementById('score').style.display = 'block';
       nextQuestion();
-    });
+    }
 
     const questionSection = document.getElementById('questionSection');
     const questionEl = document.getElementById('question');
@@ -70,6 +81,8 @@
       currentQuestion++;
       if (currentQuestion >= sampleQuestions.length) {
         alert('انتهت الجولة!');
+        // تنظيف حالة المضيف
+        if (isHost) localStorage.removeItem('isHost');
         window.location.href = 'join.html';
         return;
       }
