@@ -9,10 +9,8 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 
-// خدمة الملفات الثابتة من مجلد 'public'
 app.use(express.static(path.join(__dirname, 'public')));
 
-// توجيه الصفحة الرئيسية لملف host.html
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'host.html'));
 });
@@ -49,7 +47,10 @@ io.on('connection', (socket) => {
       score: 0,
     };
     socket.join(gameCode);
+
+    // إشعار المضيف باللاعب الجديد
     io.to(games[gameCode].hostId).emit('player-joined', { playerId: socket.id, playerName });
+
     socket.emit('joined-success', { gameCode });
     console.log(`${playerName} انضم للعبة ${gameCode}`);
   });
@@ -58,15 +59,18 @@ io.on('connection', (socket) => {
     if (!games[gameCode]) return;
     games[gameCode].started = true;
     games[gameCode].currentQuestionIndex = 0;
-    io.in(gameCode).emit('game-started'); // ← التعديل هنا فقط
+    io.to(gameCode).emit('game-started');
+    console.log(`اللعبة ${gameCode} بدأت`);
   });
 
   socket.on('player-answer', ({ gameCode, answer }) => {
     console.log(`جواب من لاعب في ${gameCode}: ${answer}`);
+    // ممكن تضيف هنا معالجة الإجابات واحتساب النقاط
   });
 
   socket.on('disconnect', () => {
     console.log('مستخدم فصل: ' + socket.id);
+    // ممكن تضيف هنا إزالة اللاعب من الألعاب لو حبيت
   });
 });
 
