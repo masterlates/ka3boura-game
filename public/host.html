@@ -93,12 +93,13 @@
       new QRCode(document.getElementById('qr'), link);
       document.getElementById('gameCodeSection').style.display = 'block';
 
-      // نحفظ اسم المضيف والكود
+      // حفظ البيانات
       const hostName = document.getElementById('hostName').value.trim();
       localStorage.setItem('playerName', hostName);
       localStorage.setItem('gameCode', gameCode);
+      localStorage.setItem('isHost', 'true'); // << ضروري جدا للمضيف
 
-      // التوجيه التلقائي إلى صفحة اللعب بعد 5 ثواني
+      // تحويل تلقائي بعد 5 ثوانٍ
       setTimeout(() => {
         window.location.href = 'game.html';
       }, 5000);
