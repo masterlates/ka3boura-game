@@ -44,6 +44,11 @@
       width: 80%;
       margin-left: auto;
       margin-right: auto;
+      max-height: 150px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+      border-radius: 8px;
     }
   </style>
 </head>
@@ -79,7 +84,7 @@
 
   <div id="playersList" style="display:none;">
     <h3>اللاعبون الذين انضموا:</h3>
-    <ul id="playersUl"></ul>
+    <ul id="playersUl" style="list-style:none; padding:0;"></ul>
   </div>
 
   <button id="startGameBtn" style="display:none;">ابدأ اللعبة للجميع 🎉</button>
@@ -123,7 +128,7 @@
       const link = `${location.origin}/join.html?code=${gameCode}`;
       gameLinkP.innerText = link;
 
-      // توليد QR Code
+      // توليد QR Code للرابط
       qrDiv.innerHTML = '';
       new QRCode(qrDiv, link);
 
@@ -131,10 +136,12 @@
       playersListDiv.style.display = 'block';
       startGameBtn.style.display = 'inline-block';
 
-      // نخزن ونسجل المضيف كلاعب
+      // سجّل المضيف كلاعب في اللعبة
+      socket.emit('player-join-game', { playerName: hostName, gameCode });
+
+      // خزن بيانات المضيف محلياً
       localStorage.setItem('playerName', hostName);
       localStorage.setItem('gameCode', gameCode);
-      socket.emit('player-join-game', { playerName: hostName, gameCode });
     });
 
     socket.on('player-joined', ({ playerName }) => {
@@ -148,8 +155,9 @@
         alert('لا توجد لعبة للبدء');
         return;
       }
-
       socket.emit('host-start-game', { gameCode });
+
+      // انتقل لصفحة اللعب فوراً كمضيف
       window.location.href = 'game.html';
     };
   </script>
