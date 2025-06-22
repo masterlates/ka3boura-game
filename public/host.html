@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>🎮 كعبورة يجاوب - المضيف</title>
+  <title>✮ كعبورة يجاوب - المضيف</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-  <h1>🎮 كعبورة يجاوب - المضيف</h1>
+  <h1>✮ كعبورة يجاوب - المضيف</h1>
 
   <label>اسمك:</label>
   <input type="text" id="hostName" placeholder="اكتب اسمك" />
@@ -32,21 +32,22 @@
   <button id="createGameBtn">أنشئ اللعبة</button>
 
   <div id="gameCodeSection" style="display: none;">
-    <h2>🔐 كود اللعبة: <span id="gameCode"></span></h2>
-    <p>شارك الرابط التالي مع أصحابك:</p>
+    <h2>✮ كود اللعبة: <span id="gameCode"></span></h2>
+    <p>شارك الرابط مع أصدقائك:</p>
     <p id="gameLink" style="word-break: break-all;"></p>
     <div id="qr"></div>
   </div>
 
   <div id="playersList" style="display:none;">
-    <h3>اللاعبون الذين انضموا:</h3>
+    <h3>اللاعبون المنضمين:</h3>
     <ul id="playersUl"></ul>
   </div>
 
-  <button id="startGameBtn" style="display:none;">ابدأ اللعبة للجميع 🎉</button>
+  <button id="startGameBtn" style="display:none;">ابدأ اللعبة للجميع ✨</button>
 
   <script>
     const socket = io();
+
     const hostNameInput = document.getElementById('hostName');
     const categorySelect = document.getElementById('category');
     const questionCountInput = document.getElementById('questionCount');
@@ -69,10 +70,7 @@
       const questionCount = parseInt(questionCountInput.value);
       const questionTime = parseInt(questionTimeInput.value);
 
-      if (!hostName) {
-        alert('الرجاء إدخال اسم المضيف');
-        return;
-      }
+      if (!hostName) return alert('الرجاء إدخال اسم المضيف');
 
       socket.emit('host-create-game', { hostName, category, questionCount, questionTime });
     };
@@ -87,6 +85,8 @@
       gameCodeSection.style.display = 'block';
       playersListDiv.style.display = 'block';
       startGameBtn.style.display = 'inline-block';
+
+      // تخزين للمضيف ليشارك كلاعب
       localStorage.setItem('playerName', hostName);
       localStorage.setItem('gameCode', gameCode);
     });
@@ -98,12 +98,16 @@
     });
 
     startGameBtn.onclick = () => {
-      if (!gameCode) return;
+      if (!gameCode || !hostName) return alert('لا توجد لعبة للبدء');
+
+      // المضيف يشارك كلاعب
       socket.emit('player-join-game', { playerName: hostName, gameCode });
-      socket.once('joined-success', () => {
-        socket.emit('host-start-game', { gameCode });
-        window.location.href = 'game.html';
-      });
+
+      // ثم يبدأ اللعبة
+      socket.emit('host-start-game', { gameCode });
+
+      // نقل لصفحة اللعب
+      window.location.href = 'game.html';
     };
   </script>
 </body>
