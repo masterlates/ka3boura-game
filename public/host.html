@@ -123,7 +123,7 @@
       const link = `${location.origin}/join.html?code=${gameCode}`;
       gameLinkP.innerText = link;
 
-      // توليد QR Code للرابط
+      // توليد QR Code
       qrDiv.innerHTML = '';
       new QRCode(qrDiv, link);
 
@@ -131,9 +131,10 @@
       playersListDiv.style.display = 'block';
       startGameBtn.style.display = 'inline-block';
 
-      // نخزن اسم المضيف والكود للانتقال للعب
+      // نخزن ونسجل المضيف كلاعب
       localStorage.setItem('playerName', hostName);
       localStorage.setItem('gameCode', gameCode);
+      socket.emit('player-join-game', { playerName: hostName, gameCode });
     });
 
     socket.on('player-joined', ({ playerName }) => {
@@ -142,19 +143,14 @@
       playersUl.appendChild(li);
     });
 
-    // ✅ المضيف ينضم كلاعب أولاً، ثم تبدأ اللعبة
     startGameBtn.onclick = () => {
       if (!gameCode) {
         alert('لا توجد لعبة للبدء');
         return;
       }
 
-      socket.emit('player-join-game', { playerName: hostName, gameCode });
-
-      socket.once('joined-success', () => {
-        socket.emit('host-start-game', { gameCode });
-        window.location.href = 'game.html';
-      });
+      socket.emit('host-start-game', { gameCode });
+      window.location.href = 'game.html';
     };
   </script>
 </body>
