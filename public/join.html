@@ -1,40 +1,14 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>🔑 كعبورة يجاوب - انضمام لاعب</title>
-<link rel="stylesheet" href="style.css" />
-<script src="/socket.io/socket.io.js"></script>
-<style>
-  body {
-    font-family: 'Arial', sans-serif;
-    background-color: #f1f9ff;
-    text-align: center;
-    padding: 20px;
-  }
-  h1 {
-    color: #2f80ed;
-  }
-  label, input, button {
-    font-size: 1.1em;
-    margin: 10px;
-    display: block;
-    width: 80%;
-    margin: 10px auto;
-  }
-  button {
-    background-color: #2f80ed;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>✡كعبورة يجاوب - انضمام لاعب</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-  <h1>🔑 انضم للعبة كعبورة يجاوب</h1>
+  <h1>✡ انضم للعبة كعبورة يجاوب</h1>
 
   <label>اسمك:</label>
   <input type="text" id="playerName" placeholder="اكتب اسمك" />
@@ -46,31 +20,19 @@
 
   <script>
     const socket = io();
-
-    // تعبئة كود اللعبة من الرابط لو موجود
     const urlParams = new URLSearchParams(window.location.search);
     const codeFromURL = urlParams.get('code');
-    if (codeFromURL) {
-      document.getElementById('gameCode').value = codeFromURL;
-    }
+    if (codeFromURL) document.getElementById('gameCode').value = codeFromURL;
 
     function joinGame() {
       const playerName = document.getElementById('playerName').value.trim();
       const gameCode = document.getElementById('gameCode').value.trim().toUpperCase();
-
-      if (!playerName || !gameCode) {
-        alert('رجاءً أدخل اسمك وكود اللعبة');
-        return;
-      }
-
+      if (!playerName || !gameCode) return alert('رجاء إدخال اسمك وكود اللعبة');
       socket.emit('player-join-game', { playerName, gameCode });
 
-      socket.on('error-message', (msg) => {
-        alert(msg);
-      });
+      socket.on('error-message', (msg) => alert(msg));
 
       socket.on('joined-success', () => {
-        // تخزين الاسم والكود للعبة القادمة
         localStorage.setItem('playerName', playerName);
         localStorage.setItem('gameCode', gameCode);
         window.location.href = 'game.html';
