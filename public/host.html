@@ -43,12 +43,6 @@
       width: 80%;
       margin-left: auto;
       margin-right: auto;
-      max-height: 200px;
-      overflow-y: auto;
-      border: 1px solid #ddd;
-      padding: 10px;
-      border-radius: 8px;
-      background: #fff;
     }
   </style>
 </head>
@@ -110,13 +104,14 @@
 
     createGameBtn.onclick = () => {
       hostName = hostNameInput.value.trim();
+      const category = categorySelect.value;
+      const questionCount = parseInt(questionCountInput.value);
+      const questionTime = parseInt(questionTimeInput.value);
+
       if (!hostName) {
         alert('الرجاء إدخال اسم المضيف');
         return;
       }
-      const category = categorySelect.value;
-      const questionCount = parseInt(questionCountInput.value);
-      const questionTime = parseInt(questionTimeInput.value);
 
       socket.emit('host-create-game', { hostName, category, questionCount, questionTime });
     };
@@ -127,6 +122,7 @@
       const link = `${location.origin}/join.html?code=${gameCode}`;
       gameLinkP.innerText = link;
 
+      // توليد QR Code للرابط
       qrDiv.innerHTML = '';
       new QRCode(qrDiv, link);
 
@@ -134,8 +130,10 @@
       playersListDiv.style.display = 'block';
       startGameBtn.style.display = 'inline-block';
 
-      // المضيف ينضم للعبة كـ لاعب
-      socket.emit('player-join-game', { playerName: hostName, gameCode });
+      // خزّن اسم المضيف والكود في localStorage للعب لاحقاً كمضيف
+      localStorage.setItem('playerName', hostName);
+      localStorage.setItem('gameCode', gameCode);
+      localStorage.setItem('isHost', 'true');
     });
 
     socket.on('player-joined', ({ playerName }) => {
@@ -150,12 +148,10 @@
         return;
       }
       socket.emit('host-start-game', { gameCode });
-    };
 
-    // المضيف ينتظر بدء اللعبة قبل الانتقال لصفحة اللعب
-    socket.on('game-started', () => {
+      // انتقل إلى صفحة اللعبة فوراً
       window.location.href = 'game.html';
-    });
+    };
   </script>
 </body>
 </html>
