@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎮 كعبورة يجاوب - المضيف</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #fdf1f1;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 {
+      color: #e84118;
+      font-size: 2em;
+    }
+    label, input, select, button {
+      font-size: 1.1em;
+      margin: 10px;
+      display: block;
+      width: 80%;
+      margin: 10px auto;
+    }
+    button {
+      background-color: #e84118;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #qr {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎮 كعبورة يجاوب - المضيف</h1>
+
+  <label>اسمك:</label>
+  <input type="text" id="hostName" placeholder="اكتب اسمك">
+
+  <label>التصنيف:</label>
+  <select id="category">
+    <option value="عام">عام</option>
+    <option value="ثقافة عامة">ثقافة عامة</option>
+    <option value="شوفلي حل">شوفلي حل</option>
+    <option value="تاريخ تونسي">تاريخ تونسي</option>
+    <option value="مسلسلات">مسلسلات</option>
+  </select>
+
+  <label>عدد الأسئلة:</label>
+  <input type="number" id="questionCount" value="5" min="1" max="20">
+
+  <label>مدة كل سؤال (بالثواني):</label>
+  <input type="number" id="questionTime" value="30" min="10" max="120">
+
+  <button onclick="startGame()">ابدأ اللعبة 🎉</button>
+
+  <div id="gameCodeSection" style="display: none;">
+    <h2>🔐 كود اللعبة: <span id="gameCode"></span></h2>
+    <p>شارك الرابط التالي مع أصحابك:</p>
+    <p id="gameLink"></p>
+    <div id="qr"></div>
+  </div>
+
+  <script>
+    function generateCode(length = 4) {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let code = '';
+      for (let i = 0; i < length; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return code;
+    }
+
+    function startGame() {
+      const hostName = document.getElementById('hostName').value.trim();
+      const category = document.getElementById('category').value;
+      const questionCount = document.getElementById('questionCount').value;
+      const questionTime = document.getElementById('questionTime').value;
+
+      if (!hostName) {
+        alert('الرجاء إدخال اسم المضيف');
+        return;
+      }
+
+      const gameCode = generateCode();
+      const link = `${location.origin}/join.html?code=${gameCode}`;
+
+      document.getElementById('gameCode').innerText = gameCode;
+      document.getElementById('gameLink').innerText = link;
+
+      new QRCode(document.getElementById("qr"), link);
+      document.getElementById('gameCodeSection').style.display = 'block';
+
+      // هنا نحفظ الإعدادات في localStorage أو نرسلها للسيرفر
+      console.log({ gameCode, hostName, category, questionCount, questionTime });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>🎯 كعبورة يجاوب - اللعب</title>
+<style>
+  body {
+    font-family: 'Arial', sans-serif;
+    background: #f0f8ff;
+    padding: 20px;
+    text-align: center;
+  }
+  #question {
+    font-size: 1.5em;
+    margin-bottom: 15px;
+  }
+  #timer {
+    font-size: 1.3em;
+    margin-bottom: 15px;
+    color: #e84118;
+  }
+  input[type="text"] {
+    font-size: 1.2em;
+    padding: 8px;
+    width: 80%;
+    max-width: 400px;
+    margin-bottom: 15px;
+  }
+  button {
+    background-color: #e84118;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    font-size: 1.2em;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  button:disabled {
+    background-color: #aaa;
+    cursor: not-allowed;
+  }
+  #result {
+    font-size: 1.3em;
+    margin-top: 15px;
+  }
+  #score {
+    margin-top: 20px;
+    font-size: 1.4em;
+  }
+</style>
+</head>
+<body>
+
+<h1>🎯 كعبورة يجاوب - اللعب</h1>
+
+<div id="questionSection">
+  <div id="question">...</div>
+  <div id="timer">الوقت المتبقي: <span id="time">30</span> ثانية</div>
+  <input type="text" id="answerInput" placeholder="أكتب جوابك هنا..." autocomplete="off" />
+  <br />
+  <button id="submitBtn">أرسل الجواب</button>
+  <div id="result"></div>
+</div>
+
+<div id="score" style="display:none;">
+  نقاطك: <span id="playerScore">0</span>
+</div>
+
+<script>
+  // مثال أسئلة مخزنة
+  const questions = [
+    { text: "عاصمة تونس شنوّة؟", answers: ["تونس", "tunis", "تونِس"] },
+    { text: "أشهر أكلات تونسية؟", answers: ["كسكسي", "كسكس", "كسكسيّة"] },
+    { text: "لون العلم التونسي؟", answers: ["أحمر", "احمر"] },
+    { text: "متى عيد الاستقلال؟", answers: ["20 مارس", "20/3", "20-مارس"] },
+    { text: "أين يقع شارع الحبيب بورقيبة؟", answers: ["تونس", "مدينة تونس"] }
+  ];
+
+  let currentQuestionIndex = 0;
+  let timeLeft = 30;
+  let timerId = null;
+  let score = 0;
+
+  const questionEl = document.getElementById('question');
+  const timeEl = document.getElementById('time');
+  const answerInput = document.getElementById('answerInput');
+  const submitBtn = document.getElementById('submitBtn');
+  const resultEl = document.getElementById('result');
+  const scoreEl = document.getElementById('score');
+  const playerScoreEl = document.getElementById('playerScore');
+
+  function normalize(str) {
+    return str.trim().toLowerCase()
+      .replace(/[ء-ي]/g, c => c.normalize("NFD").replace(/[\u064B-\u0652]/g, ""))
+      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()؟?!،]/g, "")
+      .replace(/\s+/g, " ");
+  }
+
+  function checkAnswer(input, correctAnswers) {
+    const normInput = normalize(input);
+    return correctAnswers.some(ans => normalize(ans) === normInput);
+  }
+
+  function showQuestion() {
+    if (currentQuestionIndex >= questions.length) {
+      endGame();
+      return;
+    }
+    const q = questions[currentQuestionIndex];
+    questionEl.textContent = q.text;
+    answerInput.value = "";
+    answerInput.disabled = false;
+    submitBtn.disabled = false;
+    resultEl.textContent = "";
+    timeLeft = 30; // مدة السؤال
+    timeEl.textContent = timeLeft;
+    timerId = setInterval(() => {
+      timeLeft--;
+      timeEl.textContent = timeLeft;
+      if (timeLeft <= 0) {
+        clearInterval(timerId);
+        submitAnswer();
+      }
+    }, 1000);
+  }
+
+  function submitAnswer() {
+    clearInterval(timerId);
+    answerInput.disabled = true;
+    submitBtn.disabled = true;
+
+    const userAnswer = answerInput.value;
+    const correctAnswers = questions[currentQuestionIndex].answers;
+    const correct = checkAnswer(userAnswer, correctAnswers);
+
+    if (correct) {
+      resultEl.style.color = 'green';
+      resultEl.textContent = "صحيح ✅";
+      score++;
+    } else {
+      resultEl.style.color = 'red';
+      resultEl.textContent = "غلط ❌ (الجواب الصحيح: " + correctAnswers[0] + ")";
+    }
+    playerScoreEl.textContent = score;
+    scoreEl.style.display = 'block';
+
+    // بعد 3 ثواني ننتقل للسؤال التالي
+    setTimeout(() => {
+      currentQuestionIndex++;
+      showQuestion();
+    }, 3000);
+  }
+
+  submitBtn.addEventListener('click', submitAnswer);
+
+  // أول ما تحمل الصفحة، نبدأ السؤال الأول
+  showQuestion();
+</script>
+
+</body>
+</html>
