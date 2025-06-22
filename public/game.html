@@ -108,39 +108,20 @@
   let timeLeft = 0;
   let timerId = null;
   let score = 0;
-  let currentQuestion = null;
+  let currentQuestionIndex = 0;
+  let questions = [
+    { text: "عاصمة تونس شنوّة؟", answers: ["تونس", "tunis", "تونِس"] },
+    { text: "أشهر أكلات تونسية؟", answers: ["كسكسي", "كسكس", "كسكسيّة"] },
+    { text: "لون العلم التونسي؟", answers: ["أحمر", "احمر"] }
+  ];
 
-  // استماع لحدث بدء اللعبة
   socket.on('game-started', () => {
     waitingSection.style.display = 'none';
     questionSection.style.display = 'block';
     scoreEl.style.display = 'block';
-
-    // هنا لازم تبدا الأسئلة وتوقيتاتها حسب التنسيق مع السيرفر (يتم تطويره)
-    nextQuestion();
+    currentQuestionIndex = 0;
+    showQuestion(questions[currentQuestionIndex]);
   });
-
-  function nextQuestion() {
-    // هنا نرسل طلب للسيرفر لجلب السؤال التالي (غير مفعّل حاليا)
-    // لكن لعرض تجربة، نستخدم أسئلة جاهزة:
-    const sampleQuestions = [
-      { text: "عاصمة تونس شنوّة؟", answers: ["تونس", "tunis", "تونِس"] },
-      { text: "أشهر أكلات تونسية؟", answers: ["كسكسي", "كسكس", "كسكسيّة"] },
-      { text: "لون العلم التونسي؟", answers: ["أحمر", "احمر"] }
-    ];
-
-    if (!currentQuestion) currentQuestion = 0;
-    else currentQuestion++;
-
-    if (currentQuestion >= sampleQuestions.length) {
-      alert('انتهت الجولة!');
-      // ممكن توجيه لصفحة النتيجة أو إعادة التحميل
-      window.location.href = 'join.html';
-      return;
-    }
-
-    showQuestion(sampleQuestions[currentQuestion]);
-  }
 
   function showQuestion(question) {
     questionEl.textContent = question.text;
@@ -165,15 +146,36 @@
     }, 1000);
   }
 
+  function nextQuestion() {
+    currentQuestionIndex++;
+    if (currentQuestionIndex >= questions.length) {
+      alert('انتهت الجولة!');
+      window.location.href = 'join.html';
+    } else {
+      showQuestion(questions[currentQuestionIndex]);
+    }
+  }
+
   submitBtn.addEventListener('click', () => {
     const answer = answerInput.value.trim();
     if (!answer) return;
 
+    const correctAnswers = questions[currentQuestionIndex].answers;
+    if (correctAnswers.includes(answer)) {
+      score += 1;
+      playerScoreEl.textContent = score;
+      resultEl.textContent = '✔️ إجابة صحيحة!';
+    } else {
+      resultEl.textContent = '❌ إجابة خاطئة';
+    }
+
     socket.emit('player-answer', { gameCode, answer });
 
-    resultEl.textContent = 'تم إرسال جوابك';
     answerInput.disabled = true;
     submitBtn.disabled = true;
+    clearInterval(timerId);
+
+    setTimeout(nextQuestion, 2000);
   });
 </script>
 
