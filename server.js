@@ -21,7 +21,7 @@ io.on('connection', (socket) => {
   console.log('🟢 اتصال جديد:', socket.id);
 
   socket.on('host-create-game', ({ hostName, category, questionCount, questionTime }) => {
-    const gameCode = Math.random().toString(36).substr(2, 4).toUpperCase();
+    const gameCode = Math.random().toString(36).substring(2, 6).toUpperCase();
     games[gameCode] = {
       hostId: socket.id,
       hostName,
@@ -33,61 +33,51 @@ io.on('connection', (socket) => {
       currentQuestionIndex: 0,
     };
     socket.join(gameCode);
-    // سجل المضيف كلاعب في اللعبة مباشرة
+    // أضف المضيف كلاعب عادي مع النقاط صفر
     games[gameCode].players[socket.id] = { name: hostName, score: 0 };
     socket.emit('game-created', { gameCode });
+    io.to(gameCode).emit('player-list', Object.values(games[gameCode].players).map(p => p.name));
     console.log(`🎮 لعبة جديدة: ${gameCode} أنشأها ${hostName}`);
   });
 
   socket.on('player-join-game', ({ playerName, gameCode }) => {
     const game = games[gameCode];
     if (!game) {
-      socket.emit('error-message', '❌ الكود غير صحيح أو اللعبة غير موجودة');
+      socket.emit('error-message', '❌ الكود غير صحيح أو اللعبة غير موجود');
       return;
     }
-
-    // إذا كان اللاعب مسجل مسبقاً (مثل المضيف) لا تعيد التسجيل
-    if (!game.players[socket.id]) {
-      game.players[socket.id] = { name: playerName, score: 0 };
-    }
-
+    game.players[socket.id] = { name: playerName, score: 0 };
     socket.join(gameCode);
     socket.emit('joined-success');
-
-    // أرسل تحديث للاعبين للمضيف فقط حتى لا يكرر أسماء
-    io.to(game.hostId).emit('player-joined', { playerName });
-
+    io.to(gameCode).emit('player-list', Object.values(game.players).map(p => p.name));
     console.log(`✅ ${playerName} انضم إلى اللعبة ${gameCode}`);
   });
 
   socket.on('host-start-game', ({ gameCode }) => {
     const game = games[gameCode];
     if (!game) return;
-
+    if (game.started) return; // لا تبدأ مرتين
     game.started = true;
     game.currentQuestionIndex = 0;
-
-    // أبث بدء اللعبة لكل اللاعبين في الغرفة
     io.to(gameCode).emit('game-started');
-
     console.log(`🚀 بدء اللعبة: ${gameCode}`);
   });
 
   socket.on('player-answer', ({ gameCode, answer }) => {
-    console.log(`📩 إجابة من لاعب في ${gameCode}: ${answer}`);
-    // هنا يمكنك حساب النقاط أو التحقق من صحة الإجابة
+    const game = games[gameCode];
+    if (!game) return;
+    // هنا ممكن تضيف حساب النقاط حسب الإجابة
+    console.log(`📩 جواب من لاعب في ${gameCode}: ${answer}`);
   });
 
   socket.on('disconnect', () => {
-    console.log('🔌 قطع الاتصال:', socket.id);
-    // يمكنك هنا إزالة اللاعب من اللعبة إذا رغبت بذلك
+    // حذف اللاعب من أي لعبة كان فيها
     for (const code in games) {
-      const game = games[code];
-      if (game.players[socket.id]) {
-        const playerName = game.players[socket.id].name;
-        delete game.players[socket.id];
-        io.to(game.hostId).emit('player-left', { playerName });
-        console.log(`❌ ${playerName} غادر اللعبة ${code}`);
+      if (games[code].players[socket.id]) {
+        const playerName = games[code].players[socket.id].name;
+        delete games[code].players[socket.id];
+        io.to(code).emit('player-list', Object.values(games[code].players).map(p => p.name));
+        console.log(`🔌 قطع الاتصال: ${playerName} من اللعبة ${code}`);
         break;
       }
     }
