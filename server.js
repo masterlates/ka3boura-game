@@ -9,11 +9,15 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 
+// ملفات ثابتة من مجلد public
 app.use(express.static(path.join(__dirname, 'public')));
+
+// الصفحة الرئيسية توجه لصفحة المضيف
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'host.html'));
 });
 
+// هيكل حفظ الألعاب
 let games = {};
 
 io.on('connection', (socket) => {
@@ -27,17 +31,12 @@ io.on('connection', (socket) => {
       category,
       questionCount,
       questionTime,
-      players: {},       // لاعبون: id -> {name, score}
+      players: {},
       started: false,
       currentQuestionIndex: 0,
     };
-
-    // المضيف يدخل كـ لاعب تلقائياً
-    games[gameCode].players[socket.id] = { name: hostName, score: 0 };
-
     socket.join(gameCode);
     socket.emit('game-created', { gameCode });
-    io.to(gameCode).emit('player-list', Object.values(games[gameCode].players).map(p => p.name)); // إرسال قائمة اللاعبين للجميع
     console.log(`🎮 لعبة جديدة: ${gameCode} أنشأها ${hostName}`);
   });
 
@@ -48,15 +47,16 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // إذا اللاعب جديد فقط ضيفه
-    if (!game.players[socket.id]) {
-      game.players[socket.id] = { name: playerName, score: 0 };
-      socket.join(gameCode);
-      socket.emit('joined-success');
-      io.to(game.hostId).emit('player-joined', { playerName });
-      io.to(gameCode).emit('player-list', Object.values(game.players).map(p => p.name));
-      console.log(`✅ ${playerName} انضم إلى اللعبة ${gameCode}`);
-    }
+    game.players[socket.id] = { name: playerName, score: 0 };
+    socket.join(gameCode);
+
+    // أكد للاعب انضمامه
+    socket.emit('joined-success');
+
+    // أرسل للجميع في اللعبة تحديث انضمام لاعب جديد
+    io.to(gameCode).emit('player-joined', { playerName });
+
+    console.log(`✅ ${playerName} انضم إلى اللعبة ${gameCode}`);
   });
 
   socket.on('host-start-game', ({ gameCode }) => {
@@ -65,28 +65,21 @@ io.on('connection', (socket) => {
 
     game.started = true;
     game.currentQuestionIndex = 0;
+
+    // أرسل للجميع في اللعبة إشارة بدء اللعبة
     io.to(gameCode).emit('game-started');
+
     console.log(`🚀 بدء اللعبة: ${gameCode}`);
   });
 
   socket.on('player-answer', ({ gameCode, answer }) => {
     console.log(`📩 إجابة من لاعب في ${gameCode}: ${answer}`);
-    // مع الوقت ممكن تضيف تقييم للإجابات وحساب النقاط
+    // لاحقاً يمكنك إضافة منطق تصحيح الأسئلة ونقاط اللاعبين
   });
 
   socket.on('disconnect', () => {
     console.log('🔌 قطع الاتصال:', socket.id);
-    // إذا اللاعب كان في لعبة، حدّث القائمة وبلّغ المضيف
-    for (const [code, game] of Object.entries(games)) {
-      if (game.players[socket.id]) {
-        const name = game.players[socket.id].name;
-        delete game.players[socket.id];
-        io.to(game.hostId).emit('player-left', { playerName: name });
-        io.to(code).emit('player-list', Object.values(game.players).map(p => p.name));
-        console.log(`❌ ${name} خرج من اللعبة ${code}`);
-        break;
-      }
-    }
+    // هنا يمكنك معالجة حذف اللاعب من اللعبة وتحديث القائمة
   });
 });
 
