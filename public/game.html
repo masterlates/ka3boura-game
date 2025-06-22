@@ -4,6 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>🎯 كعبورة يجاوب - اللعب</title>
+<link rel="stylesheet" href="style.css" />
+<script src="https://ka3boura-game.onrender.com/socket.io/socket.io.js"></script>
 <style>
   body {
     font-family: 'Arial', sans-serif;
@@ -54,7 +56,7 @@
 
 <h1>🎯 كعبورة يجاوب - اللعب</h1>
 
-<div id="questionSection">
+<div id="questionSection" style="display:none;">
   <div id="question">...</div>
   <div id="timer">الوقت المتبقي: <span id="time">30</span> ثانية</div>
   <input type="text" id="answerInput" placeholder="أكتب جوابك هنا..." autocomplete="off" />
@@ -63,25 +65,32 @@
   <div id="result"></div>
 </div>
 
+<div id="waiting" style="font-size:1.3em; margin-top:20px;">
+  <p>...في انتظار بداية اللعبة من المضيف</p>
+</div>
+
 <div id="score" style="display:none;">
   نقاطك: <span id="playerScore">0</span>
 </div>
 
 <script>
-  // مثال أسئلة مخزنة
-  const questions = [
-    { text: "عاصمة تونس شنوّة؟", answers: ["تونس", "tunis", "تونِس"] },
-    { text: "أشهر أكلات تونسية؟", answers: ["كسكسي", "كسكس", "كسكسيّة"] },
-    { text: "لون العلم التونسي؟", answers: ["أحمر", "احمر"] },
-    { text: "متى عيد الاستقلال؟", answers: ["20 مارس", "20/3", "20-مارس"] },
-    { text: "أين يقع شارع الحبيب بورقيبة؟", answers: ["تونس", "مدينة تونس"] }
-  ];
+  const socket = io('https://ka3boura-game.onrender.com');
 
-  let currentQuestionIndex = 0;
-  let timeLeft = 30;
-  let timerId = null;
+  const playerName = localStorage.getItem('playerName');
+  const gameCode = localStorage.getItem('gameCode');
+
+  if (!playerName || !gameCode) {
+    alert('الرجاء الانضمام للعبة أولا');
+    window.location.href = 'join.html';
+  }
+
+  let currentQuestion = null;
+  let timeLeft = 0;
+  let timerInterval = null;
   let score = 0;
 
+  const questionSection = document.getElementById('questionSection');
+  const waitingSection = document.getElementById('waiting');
   const questionEl = document.getElementById('question');
   const timeEl = document.getElementById('time');
   const answerInput = document.getElementById('answerInput');
@@ -90,72 +99,70 @@
   const scoreEl = document.getElementById('score');
   const playerScoreEl = document.getElementById('playerScore');
 
-  function normalize(str) {
-    return str.trim().toLowerCase()
-      .replace(/[ء-ي]/g, c => c.normalize("NFD").replace(/[\u064B-\u0652]/g, ""))
-      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()؟?!،]/g, "")
-      .replace(/\s+/g, " ");
-  }
+  socket.emit('player-join-game', { playerName, gameCode });
 
-  function checkAnswer(input, correctAnswers) {
-    const normInput = normalize(input);
-    return correctAnswers.some(ans => normalize(ans) === normInput);
-  }
+  socket.on('error-message', (msg) => {
+    alert(msg);
+    window.location.href = 'join.html';
+  });
 
-  function showQuestion() {
-    if (currentQuestionIndex >= questions.length) {
-      endGame();
-      return;
-    }
-    const q = questions[currentQuestionIndex];
-    questionEl.textContent = q.text;
-    answerInput.value = "";
+  socket.on('game-started', () => {
+    waitingSection.style.display = 'none';
+    questionSection.style.display = 'block';
+  });
+
+  socket.on('new-question', (question) => {
+    currentQuestion = question;
+    timeLeft = question.time;
+    questionEl.textContent = question.text;
+    answerInput.value = '';
+    resultEl.textContent = '';
     answerInput.disabled = false;
     submitBtn.disabled = false;
-    resultEl.textContent = "";
-    timeLeft = 30; // مدة السؤال
     timeEl.textContent = timeLeft;
-    timerId = setInterval(() => {
+
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
       timeLeft--;
       timeEl.textContent = timeLeft;
       if (timeLeft <= 0) {
-        clearInterval(timerId);
+        clearInterval(timerInterval);
         submitAnswer();
       }
     }, 1000);
-  }
+  });
 
   function submitAnswer() {
-    clearInterval(timerId);
+    if (!currentQuestion) return;
+
+    const answer = answerInput.value.trim();
     answerInput.disabled = true;
     submitBtn.disabled = true;
 
-    const userAnswer = answerInput.value;
-    const correctAnswers = questions[currentQuestionIndex].answers;
-    const correct = checkAnswer(userAnswer, correctAnswers);
+    socket.emit('player-answer', { gameCode, answer });
 
-    if (correct) {
-      resultEl.style.color = 'green';
-      resultEl.textContent = "صحيح ✅";
-      score++;
-    } else {
-      resultEl.style.color = 'red';
-      resultEl.textContent = "غلط ❌ (الجواب الصحيح: " + correctAnswers[0] + ")";
-    }
-    playerScoreEl.textContent = score;
-    scoreEl.style.display = 'block';
-
-    // بعد 3 ثواني ننتقل للسؤال التالي
-    setTimeout(() => {
-      currentQuestionIndex++;
-      showQuestion();
-    }, 3000);
+    resultEl.textContent = 'تم إرسال الجواب، انتظر النتيجة...';
   }
 
   submitBtn.addEventListener('click', submitAnswer);
 
-  // أول ما تحمل الصفحة، نبدأ السؤال الأول
-  showQuestion();
+  socket.on('answer-result', (data) => {
+    if (data.correct) {
+      resultEl.style.color = 'green';
+      resultEl.textContent = 'صحيح ✅';
+      score++;
+    } else {
+      resultEl.style.color = 'red';
+      resultEl.textContent = `غلط ❌ (الجواب الصحيح: ${data.correctAnswer})`;
+    }
+    playerScoreEl.textContent = score;
+    scoreEl.style.display = 'block';
+  });
+
+  socket.on('game-ended', () => {
+    alert('انتهت اللعبة! شكراً للعب معانا 😊');
+    window.location.href = 'join.html';
+  });
 </script>
 
 </body>
