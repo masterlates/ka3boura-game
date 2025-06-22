@@ -18,7 +18,7 @@ app.get('/', (req, res) => {
 let games = {};
 
 io.on('connection', (socket) => {
-  console.log('مستخدم متصل: ' + socket.id);
+  console.log('✅ مستخدم متصل: ' + socket.id);
 
   socket.on('host-create-game', ({ hostName, category, questionCount, questionTime }) => {
     const gameCode = Math.random().toString(36).substr(2, 4).toUpperCase();
@@ -30,50 +30,45 @@ io.on('connection', (socket) => {
       questionTime,
       players: {},
       started: false,
-      currentQuestionIndex: 0,
     };
     socket.join(gameCode);
     socket.emit('game-created', { gameCode });
-    console.log(`لعبة جديدة: ${gameCode} بواسطة ${hostName}`);
+    console.log(`🎮 لعبة جديدة: ${gameCode} بواسطة ${hostName}`);
   });
 
   socket.on('player-join-game', ({ playerName, gameCode }) => {
     if (!games[gameCode]) {
-      socket.emit('error-message', 'الكود غير صحيح أو اللعبة غير موجودة');
+      socket.emit('error-message', '❌ الكود غير صحيح أو اللعبة غير موجودة');
       return;
     }
+
     games[gameCode].players[socket.id] = {
       name: playerName,
       score: 0,
     };
+
     socket.join(gameCode);
-
-    // إشعار المضيف باللاعب الجديد
     io.to(games[gameCode].hostId).emit('player-joined', { playerId: socket.id, playerName });
-
-    socket.emit('joined-success', { gameCode });
-    console.log(`${playerName} انضم للعبة ${gameCode}`);
+    socket.emit('joined-success');
+    console.log(`✅ ${playerName} انضم للعبة ${gameCode}`);
   });
 
   socket.on('host-start-game', ({ gameCode }) => {
     if (!games[gameCode]) return;
     games[gameCode].started = true;
-    games[gameCode].currentQuestionIndex = 0;
     io.to(gameCode).emit('game-started');
-    console.log(`اللعبة ${gameCode} بدأت`);
+    console.log(`🚀 بدء اللعبة ${gameCode}`);
   });
 
   socket.on('player-answer', ({ gameCode, answer }) => {
-    console.log(`جواب من لاعب في ${gameCode}: ${answer}`);
-    // ممكن تضيف هنا معالجة الإجابات واحتساب النقاط
+    console.log(`📩 جواب من لاعب في ${gameCode}: ${answer}`);
   });
 
   socket.on('disconnect', () => {
-    console.log('مستخدم فصل: ' + socket.id);
-    // ممكن تضيف هنا إزالة اللاعب من الألعاب لو حبيت
+    console.log('❎ مستخدم فصل: ' + socket.id);
   });
 });
 
 server.listen(PORT, () => {
-  console.log(`السيرفر شغال على المنفذ ${PORT}`);
+  console.log(`🚀 السيرفر شغال على المنفذ ${PORT}`);
 });
