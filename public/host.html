@@ -131,7 +131,7 @@
       playersListDiv.style.display = 'block';
       startGameBtn.style.display = 'inline-block';
 
-      // تخزين اسم المضيف والكود للعبة
+      // نخزن اسم المضيف والكود للانتقال للعب
       localStorage.setItem('playerName', hostName);
       localStorage.setItem('gameCode', gameCode);
     });
@@ -142,16 +142,16 @@
       playersUl.appendChild(li);
     });
 
+    // ✅ المضيف ينضم كلاعب أولاً، ثم تبدأ اللعبة
     startGameBtn.onclick = () => {
       if (!gameCode) {
         alert('لا توجد لعبة للبدء');
         return;
       }
 
-      // المضيف ينضم كلّاعب قبل أن يبدأ اللعبة
       socket.emit('player-join-game', { playerName: hostName, gameCode });
 
-      socket.on('joined-success', () => {
+      socket.once('joined-success', () => {
         socket.emit('host-start-game', { gameCode });
         window.location.href = 'game.html';
       });
