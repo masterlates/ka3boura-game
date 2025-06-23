@@ -20,9 +20,10 @@
     }
     label, input, select, button {
       font-size: 1.1em;
-      margin: 10px auto;
+      margin: 10px;
       display: block;
       width: 80%;
+      margin: 10px auto;
     }
     button {
       background-color: #e84118;
@@ -122,6 +123,7 @@
       const link = `${location.origin}/join.html?code=${gameCode}`;
       gameLinkP.innerText = link;
 
+      // توليد QR Code للرابط
       qrDiv.innerHTML = '';
       new QRCode(qrDiv, link);
 
@@ -129,45 +131,30 @@
       playersListDiv.style.display = 'block';
       startGameBtn.style.display = 'inline-block';
 
-      // احفظ في localStorage حتى تنتقل للعبة لاحقاً
+      // نخزن اسم المضيف والكود
       localStorage.setItem('playerName', hostName);
       localStorage.setItem('gameCode', gameCode);
     });
 
-    socket.on('player-list', (players) => {
-      playersUl.innerHTML = '';
-      players.forEach(name => {
-        const li = document.createElement('li');
-        li.textContent = name;
-        playersUl.appendChild(li);
-      });
+    socket.on('player-joined', ({ playerName }) => {
+      const li = document.createElement('li');
+      li.textContent = playerName;
+      playersUl.appendChild(li);
     });
 
-   startGameBtn.onclick = () => {
-  if (!gameCode) {
-    alert('لا توجد لعبة للبدء');
-    return;
-  }
+    startGameBtn.onclick = () => {
+      if (!gameCode) {
+        alert('لا توجد لعبة للبدء');
+        return;
+      }
 
-  // ❗ أرسل نفسك كلاعب للسيرفر قبل بدء اللعبة
-  socket.emit('player-join-game', {
-    playerName: hostName,
-    gameCode: gameCode
-  });
+      // أطلق إشارة بدء اللعبة
+      socket.emit('host-start-game', { gameCode });
 
-  // ❗ بعد 200ms نبدأ اللعبة
-  setTimeout(() => {
-    socket.emit('host-start-game', { gameCode });
-
-    // ❗ نحفظ الاسم والكود للتأكد أن game.html تشتغل
-    localStorage.setItem('playerName', hostName);
-    localStorage.setItem('gameCode', gameCode);
-
-    // ❗ نفتح game.html
-    window.location.href = 'game.html';
-  }, 200);
-};
-
+      // فتح صفحة جديدة لانضمام المضيف كلاعب
+      const joinAsPlayerURL = `${location.origin}/join-as-host.html`;
+      window.open(joinAsPlayerURL, '_blank');
+    };
   </script>
 </body>
 </html>
