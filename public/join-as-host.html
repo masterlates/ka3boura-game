@@ -1,0 +1,43 @@
+<!-- join-as-host.html -->
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>🔑 المضيف يدخل اللعب</title>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body style="text-align:center; font-family:Arial">
+  <h2>🎮 انضمام المضيف كلاعب</h2>
+
+  <p>اسمك:</p>
+  <input type="text" id="playerName" readonly />
+
+  <p>كود اللعبة:</p>
+  <input type="text" id="gameCode" readonly />
+
+  <br />
+  <button onclick="joinAsHostPlayer()">انطلق كلاعب 🚀</button>
+
+  <script>
+    const socket = io();
+    const playerName = localStorage.getItem('playerName');
+    const gameCode = localStorage.getItem('gameCode');
+
+    document.getElementById('playerName').value = playerName;
+    document.getElementById('gameCode').value = gameCode;
+
+    function joinAsHostPlayer() {
+      socket.emit('player-join-game', { playerName, gameCode });
+
+      socket.on('joined-success', () => {
+        window.location.href = 'game.html';
+      });
+
+      socket.on('error-message', msg => {
+        alert(msg);
+      });
+    }
+  </script>
+</body>
+</html>
